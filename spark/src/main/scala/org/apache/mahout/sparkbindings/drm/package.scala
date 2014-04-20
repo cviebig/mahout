@@ -30,6 +30,7 @@ import RLikeOps._
 import SparkContext._
 import org.apache.spark.broadcast.Broadcast
 import org.apache.mahout.sparkbindings.drm.decompositions.{DSPCA, DSSVD, DQR}
+import org.apache.mahout.sparkbindings.classification.NaiveBayes
 
 
 package object drm {
@@ -278,5 +279,16 @@ package object drm {
   def dspca[K: ClassTag](A: DrmLike[K], k: Int, p: Int = 15, q: Int = 0):
   (DrmLike[K], DrmLike[Int], Vector) = DSPCA.dspca(A, k, p, q)
 
+  /**
+   * Distributed training of a Naive Bayes model. Follows the approach presented in Rennie et.al.: Tackling the poor
+   * assumptions of Naive Bayes Text classifiers, ICML 2003, http://people.csail.mit.edu/jrennie/papers/icml03-nb.pdf
+   *
+   * @param observationsPerLabel an array of matrices. Every matrix contains the observations for a particular label.
+   * @param trainComplementary whether to train a complementary Naive Bayes model
+   * @param alphaI smoothing parameter
+   * @return trained naive bayes model
+   */
+  def trainNB[K: ClassTag](observationsPerLabel: Array[DrmLike[K]], trainComplementary: Boolean = false,
+      alphaI: Float = NaiveBayes.defaultAlphaI) = NaiveBayes.trainNB(observationsPerLabel, trainComplementary, alphaI)
 
 }
