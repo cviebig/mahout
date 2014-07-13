@@ -17,12 +17,11 @@
 
 package org.apache.mahout.sparkbindings.drm.classification
 
-import org.apache.mahout.sparkbindings.drm.RLikeDrmOps._
-import org.apache.mahout.sparkbindings.drm._
+import org.apache.mahout.math.drm._
+import org.apache.mahout.math.scalabindings
 import org.apache.mahout.math.scalabindings._
-import RLikeOps._
 import org.apache.mahout.classifier.naivebayes.NaiveBayesModel
-import org.apache.mahout.classifier.naivebayes.training.{StandardThetaTrainer, ComplementaryThetaTrainer}
+import org.apache.mahout.classifier.naivebayes.training.ComplementaryThetaTrainer
 import scala.reflect.ClassTag
 
 /**
@@ -42,29 +41,24 @@ object NaiveBayes {
    * @param alphaI smoothing parameter
    * @return trained naive bayes model
    */
-  def trainNB[K: ClassTag](observationsPerLabel: Array[DrmLike[K]], trainComplementary: Boolean = false,
+  def trainNB[K: ClassTag](observationsPerLabel: Array[DrmLike[K]],
                                    alphaI: Float = defaultAlphaI): NaiveBayesModel = {
 
     // distributed summation of all observations per label
-    val weightsPerLabelAndFeature = dense(observationsPerLabel.map(_.colSums))
+    val weightsPerLabelAndFeature = scalabindings.dense(observationsPerLabel.map(new MatrixOps(_).colSums))
     // local summation of all weights per feature
-    val weightsPerFeature = weightsPerLabelAndFeature.colSums
+    val weightsPerFeature = new MatrixOps(weightsPerLabelAndFeature).colSums
     // local summation of all weights per label
-    val weightsPerLabel = weightsPerLabelAndFeature.rowSums
+    val weightsPerLabel = new MatrixOps(weightsPerLabelAndFeature).rowSums
 
     // instantiate a trainer for the theta normalization
-    val thetaTrainer = if (trainComplementary) {
-      new ComplementaryThetaTrainer(weightsPerFeature, weightsPerLabel, alphaI)
-    } else {
-      new StandardThetaTrainer(weightsPerFeature, weightsPerLabel, alphaI)
-    }
-
+    val thetaTrainer = new ComplementaryThetaTrainer(weightsPerFeature, weightsPerLabel, alphaI)
     // local training of the theta normalization
-    for (labelIndex <- 0 until weightsPerLabelAndFeature.nrow) {
-      thetaTrainer.train(labelIndex, weightsPerLabelAndFeature(labelIndex, ::))
+    for (labelIndex <- 0 until new MatrixOps(weightsPerLabelAndFeature).nrow) {
+      thetaTrainer.train(labelIndex, weightsPerLabelAndFeature.viewRow(labelIndex))
     }
 
     new NaiveBayesModel(weightsPerLabelAndFeature, weightsPerFeature, weightsPerLabel,
-                        thetaTrainer.retrievePerLabelThetaNormalizer(), alphaI)
+                        thetaTrainer.retrievePerLabelThetaNormalizer(), alphaI, true)
   }
 }

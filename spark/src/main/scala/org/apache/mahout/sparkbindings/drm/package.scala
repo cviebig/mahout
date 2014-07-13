@@ -29,7 +29,7 @@ import org.apache.mahout.math.scalabindings._
 import RLikeOps._
 import org.apache.spark.broadcast.Broadcast
 import org.apache.mahout.math.drm._
-import org.apache.mahout.sparkbindings.classification.NaiveBayes
+import org.apache.mahout.sparkbindings.drm.classification.NaiveBayes
 import SparkContext._
 import org.apache.mahout.math
 
@@ -121,7 +121,7 @@ package object drm {
    * @param alphaI smoothing parameter
    * @return trained naive bayes model
    */
-  def trainNB[K: ClassTag](observationsPerLabel: Array[DrmLike[K]], trainComplementary: Boolean = false,
-      alphaI: Float = NaiveBayes.defaultAlphaI) = NaiveBayes.trainNB(observationsPerLabel, trainComplementary, alphaI)
+  def trainNB[K: ClassTag](observationsPerLabel: Array[DrmLike[K]],
+      alphaI: Float = NaiveBayes.defaultAlphaI) = NaiveBayes.trainNB(observationsPerLabel, alphaI)
 
 }
